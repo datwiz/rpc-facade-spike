@@ -33,37 +33,48 @@ Two ideas carry it:
 
 ## Architecture
 
+The two modes diverge at `Transport` and meet again at `Handler`. Everything
+above the split is written once; everything below it is plumbing.
+
+```mermaid
+flowchart TD
+    subgraph callers [" "]
+        direction LR
+        rust["<b>Rust caller</b><br>&dyn DoSomething"]
+        python["<b>Python caller</b><br>PingBackend"]
+    end
+
+    pyo3["<b>crates/py</b> · PyO3<br>cdylib _something<br>+ python/something"]
+
+    facade["<b>Something</b> · crates/client<br>handshake, cached version<br>one retry on skew"]
+    transport{{"<b>Transport</b><br>bytes in, bytes out"}}
+
+    loopback["<b>LoopbackTransport</b><br>in-process,<br>full encode/decode"]
+    lambdaT["<b>LambdaTransport</b><br>aws-sdk-lambda<br>+ tokio runtime"]
+
+    aws["<b>AWS Lambda</b><br>arm64, provided.al2023<br>crates/lambda · bootstrap"]
+
+    handler["<b>Handler</b> · crates/core<br>register · exec · errors<br><i>pure: no AWS, no I/O</i>"]
+
+    rust --> facade
+    python --> pyo3 --> facade
+    facade --> transport
+    transport -->|local| loopback
+    transport -->|remote| lambdaT
+    lambdaT -. "JSON envelope<br>base64 protobuf" .-> aws
+    loopback --> handler
+    aws --> handler
+
+    classDef pure stroke:#2da44e,stroke-width:2px
+    classDef remote stroke:#bf8700,stroke-width:1px,stroke-dasharray:4 3
+    class handler pure
+    class aws remote
+    style callers stroke-width:0px,fill:transparent
 ```
-  caller (Rust)            caller (Python)
-        |                        |
-        |                  something.Something  ──┐  hand-written
-        |                  something.PingBackend ─┘  typing.Protocol
-        |                        |
-        |                  crates/py  (PyO3, cdylib _something)
-        |                        |
-        +-----------+------------+
-                    |
-              Something  (crates/client)
-              - handshake, cached negotiated version
-              - one retry on UNSUPPORTED_VERSION
-                    |
-              Transport  (bytes in, bytes out)
-                    |
-        +-----------+------------------------+
-        |                                    |
-  LoopbackTransport                    LambdaTransport
-  (in-process, full codec)             (aws-sdk-lambda, owns a tokio runtime)
-        |                                    |
-        |                            JSON {"payload": base64(protobuf)}
-        |                                    |
-        |                            AWS Lambda (provided.al2023, arm64)
-        |                            crates/lambda  bootstrap
-        |                                    |
-        +-----------+------------------------+
-                    |
-              Handler  (crates/core)  ← pure library, no AWS, no I/O
-              register / exec / error responses
-```
+
+Dashed is the part that leaves the process. Note that both branches end at the
+*same* `Handler` — local mode is not a shortcut around the protocol, it is the
+protocol run in-process.
 
 `crates/core` has no Lambda, AWS, async or I/O dependencies. That is what lets
 the same code answer both an in-process call and a real invocation.
