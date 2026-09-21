@@ -1,0 +1,15 @@
+[package]
+name = "something-py"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "PyO3 bindings. Kept separate so no other crate depends on Python."
+
+[lib]
+name = "_something"
+crate-type = ["cdylib"]
+
+[dependencies]
+something-client.workspace = true
+pyo3 = { workspace = true, features = ["extension-module"] }

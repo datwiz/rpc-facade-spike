@@ -1,0 +1,8 @@
+/target
+/.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# maturin drops the built module next to the Python source
+/python/something/_something*.so
+/python/something/_something*.pyd

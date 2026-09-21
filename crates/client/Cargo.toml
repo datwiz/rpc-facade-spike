@@ -1,0 +1,23 @@
+[package]
+name = "something-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "The caller-facing facade: one code path, swappable transport."
+
+[features]
+default = ["aws"]
+# The AWS SDK is the only heavy dependency here. Turning it off gives a
+# loopback-only build, which is what CI and the Python tests use.
+aws = ["dep:aws-config", "dep:aws-sdk-lambda", "dep:tokio"]
+
+[dependencies]
+something-proto.workspace = true
+something-core.workspace = true
+prost.workspace = true
+thiserror.workspace = true
+
+aws-config = { workspace = true, optional = true }
+aws-sdk-lambda = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["rt", "time"] }

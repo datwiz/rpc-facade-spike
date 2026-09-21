@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/proto",
+    "crates/core",
+    "crates/client",
+    "crates/lambda",
+    "crates/py",
+]
+# The PyO3 crate is excluded from the default set: with the `extension-module`
+# feature on it deliberately leaves Python symbols undefined, so `cargo test` at
+# the workspace root cannot link it. maturin builds it explicitly by manifest path.
+default-members = [
+    "crates/proto",
+    "crates/core",
+    "crates/client",
+    "crates/lambda",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.94"
+publish = false
+
+[workspace.dependencies]
+something-proto = { path = "crates/proto" }
+something-core = { path = "crates/core" }
+something-client = { path = "crates/client" }
+
+prost = "0.14"
+prost-build = "0.14"
+protoc-bin-vendored = "3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.23"
+thiserror = "2"
+tokio = "1"
+aws-config = "1"
+aws-sdk-lambda = "1"
+lambda_runtime = "1"
+pyo3 = "0.29"

@@ -1,0 +1,11 @@
+[package]
+name = "something-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Protocol handling and business logic. No AWS, no transport, no I/O."
+
+[dependencies]
+something-proto.workspace = true
+prost.workspace = true

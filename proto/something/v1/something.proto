@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package something.v1;
+
+// Every request is one explicit operation. A `oneof` is used rather than
+// optional fields so a malformed/partial message can never be mistaken for a
+// different operation: an absent body is an error, not a default.
+message Request {
+  oneof body {
+    RegisterRequest register = 1;
+    ExecRequest exec = 2;
+  }
+}
+
+// Diagnostics only. The server does not use this to decide anything; the
+// client is the party that applies policy (see RegisterResponse).
+message RegisterRequest {
+  string client_build = 1;
+}
+
+message ExecRequest {
+  // Required. The server rejects 0 rather than assuming a default, because a
+  // zero here means the client skipped negotiation or a field was dropped.
+  uint32 negotiated_version = 1;
+  oneof call {
+    PingRequest ping = 2;
+  }
+}
+
+message PingRequest {}
+
+message Response {
+  oneof body {
+    RegisterResponse register = 1;
+    ExecResponse exec = 2;
+    ErrorResponse error = 3;
+  }
+}
+
+// What the server supports. It never answers yes/no to client requirements;
+// it only describes itself and lets the client decide.
+message RegisterResponse {
+  string build = 1;
+  repeated Capability capabilities = 2;
+  VersionRange inbound = 3;       // request versions the server accepts
+  VersionRange outbound = 4;      // response versions the server can emit
+  map<string, string> limits = 5; // informational, e.g. max payload bytes
+}
+
+// min_version/max_version are the *protocol* versions for which this
+// capability is available, not a version of the capability itself.
+message Capability {
+  string name = 1;
+  uint32 min_version = 2;
+  uint32 max_version = 3;
+}
+
+message VersionRange {
+  uint32 min = 1;
+  uint32 max = 2;
+}
+
+// Named `output` rather than `result` so generated Rust does not collide with
+// the Result type in the surrounding code.
+message ExecResponse {
+  oneof output {
+    PingResponse ping = 1;
+  }
+}
+
+message PingResponse {
+  string message = 1;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_REQUEST = 1;
+  ERROR_CODE_MISSING_VERSION = 2;
+  ERROR_CODE_UNSUPPORTED_VERSION = 3;
+  ERROR_CODE_UNSUPPORTED_CAPABILITY = 4;
+  ERROR_CODE_INTERNAL = 5;
+}
+
+message ErrorResponse {
+  ErrorCode code = 1;
+  string message = 2;
+}

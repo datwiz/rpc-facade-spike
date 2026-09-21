@@ -1,0 +1,18 @@
+[package]
+name = "something-lambda"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Lambda binary: a thin adapter over something-core."
+
+[[bin]]
+name = "bootstrap"
+path = "src/main.rs"
+
+[dependencies]
+something-core.workspace = true
+something-proto.workspace = true
+lambda_runtime.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }
+serde_json.workspace = true
